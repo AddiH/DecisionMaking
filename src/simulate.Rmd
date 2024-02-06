@@ -11,16 +11,47 @@ payoff <- read.csv("../data/payoff.csv")
 ```
 
 ```{r}
+n_trials <- 100
 w <- 2 # weighting parameter (aka. loss aversion)
 A <- .5 # shape parameter (aka. risk aversion)
 theta <- 3 # inverse heat parameter (aka. choice consitency)
 a <- .1 # learning rate parameter (aka. prediction error weighting)
+
+PVL_sims <- PVL(payoff, n_trials, w, A, a, theta) # simulate
+```
+
+```{r}
+df <- tibble(
+trial = 1:n_trials,
+Ev_deck_1 = PVL_sims$Ev[,1],
+Ev_deck_2 = PVL_sims$Ev[,2],
+Ev_deck_3 = PVL_sims$Ev[,3],
+Ev_deck_4 = PVL_sims$Ev[,4],
+choice = PVL_sims$x,
+payoff = PVL_sims$X)
+print(df)
 ```
 
 
 ```{r}
-PVL_sims <- PVL(payoff, ntrials, w, A, a, theta)
+df_long <- df %>%
+  pivot_longer(cols = starts_with("Ev_deck"), names_to = "Deck", values_to = "EV") %>%
+  mutate(Deck = factor(Deck, levels = c("Ev_deck_1", "Ev_deck_2", "Ev_deck_3", "Ev_deck_4"),
+                       labels = c("Deck 1", "Deck 2", "Deck 3", "Deck 4")))
 ```
+
+
+```{r}
+ggplot(df_long, aes(x = trial, y = EV, color = Deck)) +
+  geom_point() +
+  theme_minimal() +
+  labs(title = "Expected Value by Deck Over Trials",
+       x = "Trial",
+       y = "Expected Value",
+       color = "Deck")
+
+```
+
 
 
 ```{r}
@@ -29,9 +60,6 @@ plot(PVL_sims$Ev[, 1], ylim = c(-1, 1))
 plot(PVL_sims$Ev[, 2], ylim = c(-1, 1))
 plot(PVL_sims$Ev[, 3], ylim = c(-1, 1))
 plot(PVL_sims$Ev[, 4], ylim = c(-1, 1))
-title(paste("Traces of expeceted value (Ev) for all four decks over", ntrials, "trials"), line = -1, outer = TRUE)
-
-x <- PVL_sims$x
-X <- PVL_sims$X
+title(paste("Traces of expeceted value (Ev) for all four decks over", n_trials, "trials"), line = -1, outer = TRUE)
 ```
 

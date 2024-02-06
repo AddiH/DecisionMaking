@@ -19,7 +19,9 @@ PVL <- function(payoff, ntrials, w, A, a, theta) {
 
         u[t] <- ifelse(X[t - 1] < 0, -w * abs(X[t - 1])^A, X[t - 1]^A) # calculating subjective utiliy
         Ev[t, d] <- Ev[t - 1, d] + (a * (u[t] - Ev[t - 1, d])) # set the updated EV
-      } else { # else
+      
+      } else {
+        
         Ev[t, d] <- Ev[t - 1, d] # copy the previous EV
       }
 
@@ -31,15 +33,14 @@ PVL <- function(payoff, ntrials, w, A, a, theta) {
     }
 
     x[t] <- rcat(1, p[t, ]) # find the chosen deck
-
     X[t] <- payoff[t, x[t]] # get the corresponding payoff
   }
 
   result <- list(
-    x = x, # chosen deck
-    X = X, # corresponding payoff
-    Ev = Ev
-  ) # Expected utility
+    x = x,  # chosen deck
+    X = X,  # corresponding payoff
+    Ev = Ev # Expected utility
+  ) 
 
   return(result)
 }
