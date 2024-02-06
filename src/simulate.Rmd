@@ -1,5 +1,5 @@
 ```{r setup}
-# install.packages("pacman")
+install.packages("pacman")
 pacman::p_load(tidyverse, R2jags, extraDistr)
 source("../utils/PVL.R")
 set.seed(69)
@@ -18,6 +18,7 @@ theta <- 3 # inverse heat parameter (aka. choice consitency)
 a <- .1 # learning rate parameter (aka. prediction error weighting)
 
 PVL_sims <- PVL(payoff, n_trials, w, A, a, theta) # simulate
+write.csv(PVL_sims, "../data/simulate.csv", row.names=FALSE)
 ```
 
 ```{r}
@@ -55,11 +56,14 @@ ggplot(df_long, aes(x = trial, y = EV, color = Deck)) +
 
 
 ```{r}
-par(mfrow = c(2, 2))
-plot(PVL_sims$Ev[, 1], ylim = c(-1, 1))
-plot(PVL_sims$Ev[, 2], ylim = c(-1, 1))
-plot(PVL_sims$Ev[, 3], ylim = c(-1, 1))
-plot(PVL_sims$Ev[, 4], ylim = c(-1, 1))
-title(paste("Traces of expeceted value (Ev) for all four decks over", n_trials, "trials"), line = -1, outer = TRUE)
+ggplot(df_long, aes(x = trial, y = EV)) +
+  geom_line(aes(color = Deck)) + # Use geom_line for continuous EV plot
+  facet_wrap(~Deck, ncol = 2) + # Arrange plots in a 2x2 grid based on Deck
+  theme_minimal() +
+  labs(title = "Expected Value by Deck Over Trials",
+       x = "Trial",
+       y = "Expected Value") +
+  theme(legend.position = "none") # Remove legend if not needed
+
 ```
 

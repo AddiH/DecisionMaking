@@ -1,0 +1,63 @@
+
+```{r setup}
+#install.packages("pacman")
+pacman::p_load(tidyverse, R2jags, extraDistr, parallel)
+set.seed(69)
+
+MPD <- function(x) {
+  density(x)$x[which(density(x)$y==max(density(x)$y))]
+}
+PVL_sims <- read.csv("../data/simulate.csv")
+n_trials <- 100
+```
+
+
+
+```{r}
+x <- PVL_sims$x
+X <- PVL_sims$X
+
+# set up jags and run jags model
+data <- list("x","X","n_trials") 
+params<-c("w","A","theta","a")
+temp_samples <- jags.parallel(data, inits=NULL, params,
+                model.file ="PVL.txt",
+                n.chains=3, n.iter=5000, n.burnin=1000, n.thin=1,
+                n.cluster=3)
+
+recov_w <- temp_samples$BUGSoutput$sims.list$w
+recov_A <- temp_samples$BUGSoutput$sims.list$A
+recov_a <- temp_samples$BUGSoutput$sims.list$a
+recov_theta <- temp_samples$BUGSoutput$sims.list$theta
+
+# find maximum a posteriori
+Q_w <- temp_samples$BUGSoutput$sims.list$w
+max_Q_w <- MPD(Q_w)
+
+Q_A <- temp_samples$BUGSoutput$sims.list$A
+max_Q_A <- MPD(Q_A)
+
+Q_a <- temp_samples$BUGSoutput$sims.list$a
+max_Q_a <- MPD(Q_a)
+
+Q_theta <- temp_samples$BUGSoutput$sims.list$theta
+max_Q_theta <- MPD(Q_theta)
+```
+
+```{r}
+par(mfrow=c(4,1))
+plot(density(recov_w))
+plot(density(recov_A))
+plot(density(recov_a))
+plot(density(recov_theta))
+title(paste("Density plots (for recovered w, A, a & theta) with ntrials =", n_trials), line = -1, outer = TRUE)
+```
+
+```{r}
+print(max_Q_w)
+print(max_Q_A)
+print(max_Q_a)
+print(max_Q_theta)
+```
+
+
