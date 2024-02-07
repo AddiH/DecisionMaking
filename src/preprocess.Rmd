@@ -1,0 +1,348 @@
+```{r}
+pacman::p_load(tidyverse)
+```
+
+```{r}
+load("../data/IGTdata.rdata")
+```
+
+# Intro
+The data is not structured in a way we can easily use for recovering variables. This code shows how the data is cleaned and prepped for use. The file has a lot of repeating steps, but is made this way to make it very clear what manipulations are done to the data.
+
+
+# Fixing dataframes from studies with a 100 trials
+
+## Changing type from matrix to tibble
+```{r}
+wi_100_df <- as_tibble(wi_100)
+wi_100_df <- wi_100_df %>%
+  rownames_to_column(var = "Subj") %>%
+  as_tibble()
+
+lo_100_df <- as_tibble(lo_100)
+lo_100_df <- lo_100_df %>%
+  rownames_to_column(var = "Subj") %>%
+  as_tibble()
+
+choice_100_df <- as_tibble(choice_100)
+choice_100_df <- choice_100_df %>%
+  rownames_to_column(var = "Subj") %>%
+  as_tibble()
+
+index_100_df <- as_tibble(index_100)
+```
+
+## Adding the study
+```{r}
+wi_100_study <- wi_100_df %>%
+  left_join(index_100_df, by = "Subj")
+
+lo_100_study <- lo_100_df %>%
+  left_join(index_100_df, by = "Subj")
+
+choice_100_study <- choice_100_df %>%
+  left_join(index_100_df, by = "Subj")
+```
+
+## Renaming columns
+```{r}
+wi_100_study_renamed_cols <- wi_100_study %>%
+  rename_with(~ gsub("Wins_", "trial_", .), starts_with("Wins_"))
+
+lo_100_study_renamed_cols <- lo_100_study %>%
+  rename_with(~ gsub("Losses_", "trial_", .), starts_with("Losses_"))
+
+choice_100_study_renamed_cols <- choice_100_study %>%
+  rename_with(~ gsub("Choice_", "trial_", .), starts_with("Choice_"))
+```
+
+## Make long
+```{r}
+wi_100_study_renamed_cols_pivot <- wi_100_study_renamed_cols %>%
+  pivot_longer(
+    cols = starts_with("trial_"), 
+    names_to = "trial_nr", 
+    values_to = "win",
+    names_prefix = "trial_",
+    names_transform = list(trial_nr = as.integer)
+  ) 
+
+lo_100_study_renamed_cols_pivot <- lo_100_study_renamed_cols %>%
+  pivot_longer(
+    cols = starts_with("trial_"), 
+    names_to = "trial_nr", 
+    values_to = "loss",
+    names_prefix = "trial_",
+    names_transform = list(trial_nr = as.integer)
+  ) 
+
+choice_100_study_renamed_cols_pivot <- choice_100_study_renamed_cols %>%
+  pivot_longer(
+    cols = starts_with("trial_"), 
+    names_to = "trial_nr", 
+    values_to = "choice",
+    names_prefix = "trial_",
+    names_transform = list(trial_nr = as.integer)
+  ) 
+```
+
+## Combine and add payoff
+```{r}
+df_100 <- wi_100_study_renamed_cols_pivot %>%
+  full_join(lo_100_study_renamed_cols_pivot, by = c("Subj", "Study", "trial_nr")) %>%
+  full_join(choice_100_study_renamed_cols_pivot, by = c("Subj", "Study", "trial_nr")) %>%
+  mutate(payoff = (win + loss)/100)
+```
+
+## Prep for recovery
+```{r}
+recover_100 <- df_100 %>% 
+  rename(x = choice, X = payoff)
+unique(recover_100$Study)
+```
+
+## Get individual studies
+```{r}
+Horstmann <- recover_100 %>% 
+  filter(Study == "Horstmann") %>% 
+  select(x, X, Subj)
+
+Kjome <- recover_100 %>% 
+  filter(Study == "Kjome") %>% 
+  select(x, X, Subj)
+
+Maia <- recover_100 %>% 
+  filter(Study == "Maia") %>% 
+  select(x, X, Subj)
+
+SteingroverInPrep <- recover_100 %>% 
+  filter(Study == "SteingroverInPrep") %>% 
+  select(x, X, Subj)
+
+Premkumar <- recover_100 %>% 
+  filter(Study == "Premkumar") %>% 
+  select(x, X, Subj)
+
+Wood <- recover_100 %>% 
+  filter(Study == "Wood") %>% 
+  select(x, X, Subj)
+
+Worthy <- recover_100 %>% 
+  filter(Study == "Worthy") %>% 
+  select(x, X, Subj)
+```
+
+
+
+# Fixing dataframes from studies with a 95 trials
+
+## Changing type from matrix to tibble
+```{r}
+wi_95_df <- as_tibble(wi_95)
+wi_95_df <- wi_95_df %>%
+  rownames_to_column(var = "Subj") %>%
+  as_tibble()
+
+lo_95_df <- as_tibble(lo_95)
+lo_95_df <- lo_95_df %>%
+  rownames_to_column(var = "Subj") %>%
+  as_tibble()
+
+choice_95_df <- as_tibble(choice_95)
+choice_95_df <- choice_95_df %>%
+  rownames_to_column(var = "Subj") %>%
+  as_tibble()
+
+index_95_df <- as_tibble(index_95)
+```
+
+## Adding the study
+```{r}
+wi_95_study <- wi_95_df %>%
+  left_join(index_95_df, by = "Subj")
+
+lo_95_study <- lo_95_df %>%
+  left_join(index_95_df, by = "Subj")
+
+choice_95_study <- choice_95_df %>%
+  left_join(index_95_df, by = "Subj")
+```
+
+## Renaming columns
+```{r}
+wi_95_study_renamed_cols <- wi_95_study %>%
+  rename_with(~ gsub("Wins_", "trial_", .), starts_with("Wins_"))
+
+lo_95_study_renamed_cols <- lo_95_study %>%
+  rename_with(~ gsub("Losses_", "trial_", .), starts_with("Losses_"))
+
+choice_95_study_renamed_cols <- choice_95_study %>%
+  rename_with(~ gsub("Choice_", "trial_", .), starts_with("Choice_"))
+```
+
+## Make long
+```{r}
+wi_95_study_renamed_cols_pivot <- wi_95_study_renamed_cols %>%
+  pivot_longer(
+    cols = starts_with("trial_"), 
+    names_to = "trial_nr", 
+    values_to = "win",
+    names_prefix = "trial_",
+    names_transform = list(trial_nr = as.integer)
+  ) 
+
+lo_95_study_renamed_cols_pivot <- lo_95_study_renamed_cols %>%
+  pivot_longer(
+    cols = starts_with("trial_"), 
+    names_to = "trial_nr", 
+    values_to = "loss",
+    names_prefix = "trial_",
+    names_transform = list(trial_nr = as.integer)
+  ) 
+
+choice_95_study_renamed_cols_pivot <- choice_95_study_renamed_cols %>%
+  pivot_longer(
+    cols = starts_with("trial_"), 
+    names_to = "trial_nr", 
+    values_to = "choice",
+    names_prefix = "trial_",
+    names_transform = list(trial_nr = as.integer)
+  ) 
+```
+
+## Combine and add payoff
+```{r}
+df_95 <- wi_95_study_renamed_cols_pivot %>%
+  full_join(lo_95_study_renamed_cols_pivot, by = c("Subj", "Study", "trial_nr")) %>%
+  full_join(choice_95_study_renamed_cols_pivot, by = c("Subj", "Study", "trial_nr")) %>%
+  mutate(payoff = (win + loss)/100)
+```
+
+## Prep for recovery
+```{r}
+recover_95 <- df_95 %>% 
+  rename(x = choice, X = payoff)
+unique(recover_95$Study)
+```
+
+## Get individual studies
+```{r}
+Fridberg <- recover_95 %>% 
+  filter(Study == "Fridberg") %>% 
+  select(x, X, Subj)
+```
+
+
+
+# Fixing dataframes from studies with a 150 trials
+
+## Changing type from matrix to tibble
+```{r}
+wi_150_df <- as_tibble(wi_150)
+wi_150_df <- wi_150_df %>%
+  rownames_to_column(var = "Subj") %>%
+  as_tibble()
+
+lo_150_df <- as_tibble(lo_150)
+lo_150_df <- lo_150_df %>%
+  rownames_to_column(var = "Subj") %>%
+  as_tibble()
+
+choice_150_df <- as_tibble(choice_150)
+choice_150_df <- choice_150_df %>%
+  rownames_to_column(var = "Subj") %>%
+  as_tibble()
+
+index_150_df <- as_tibble(index_150)
+```
+
+## Adding the study
+```{r}
+wi_150_study <- wi_150_df %>%
+  left_join(index_150_df, by = "Subj")
+
+lo_150_study <- lo_150_df %>%
+  left_join(index_150_df, by = "Subj")
+
+choice_150_study <- choice_150_df %>%
+  left_join(index_150_df, by = "Subj")
+```
+
+## Renaming columns
+```{r}
+wi_150_study_renamed_cols <- wi_150_study %>%
+  rename_with(~ gsub("Wins_", "trial_", .), starts_with("Wins_"))
+
+lo_150_study_renamed_cols <- lo_150_study %>%
+  rename_with(~ gsub("Losses_", "trial_", .), starts_with("Losses_"))
+
+choice_150_study_renamed_cols <- choice_150_study %>%
+  rename_with(~ gsub("Choice_", "trial_", .), starts_with("Choice_"))
+```
+
+## Make long
+```{r}
+wi_150_study_renamed_cols_pivot <- wi_150_study_renamed_cols %>%
+  pivot_longer(
+    cols = starts_with("trial_"), 
+    names_to = "trial_nr", 
+    values_to = "win",
+    names_prefix = "trial_",
+    names_transform = list(trial_nr = as.integer)
+  ) 
+
+lo_150_study_renamed_cols_pivot <- lo_150_study_renamed_cols %>%
+  pivot_longer(
+    cols = starts_with("trial_"), 
+    names_to = "trial_nr", 
+    values_to = "loss",
+    names_prefix = "trial_",
+    names_transform = list(trial_nr = as.integer)
+  ) 
+
+choice_150_study_renamed_cols_pivot <- choice_150_study_renamed_cols %>%
+  pivot_longer(
+    cols = starts_with("trial_"), 
+    names_to = "trial_nr", 
+    values_to = "choice",
+    names_prefix = "trial_",
+    names_transform = list(trial_nr = as.integer)
+  ) 
+```
+
+## Combine and add payoff
+```{r}
+df_150 <- wi_150_study_renamed_cols_pivot %>%
+  full_join(lo_150_study_renamed_cols_pivot, by = c("Subj", "Study", "trial_nr")) %>%
+  full_join(choice_150_study_renamed_cols_pivot, by = c("Subj", "Study", "trial_nr")) %>%
+  mutate(payoff = (win + loss)/100)
+```
+
+## Prep for recovery
+```{r}
+recover_150 <- df_150 %>% 
+  rename(x = choice, X = payoff)
+unique(recover_150$Study)
+```
+
+## Get individual studies
+```{r}
+Steingroever2011 <- recover_150 %>% 
+  filter(Study == "Steingroever2011") %>% 
+  select(x, X, Subj)
+
+Wetzels <- recover_150 %>% 
+  filter(Study == "Wetzels") %>% 
+  select(x, X, Subj)
+```
+
+# Save the files
+```{r}
+save(Horstmann, Kjome, Maia, SteingroverInPrep, Premkumar, Wood, Worthy, Fridberg, Steingroever2011, Wetzels,
+     file = "../data/all_studies.rdata")
+```
+
+```{r}
+load("../data/all_studies.rdata")
+```
+
