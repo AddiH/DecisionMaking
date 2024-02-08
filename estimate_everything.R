@@ -1,6 +1,7 @@
 load('data/all_studies.rdata')
 
 data_list <- list(
+  Fridberg = Fridberg, 
   Horstmann = Horstmann, 
   Kjome = Kjome, 
   Maia = Maia, 
@@ -8,7 +9,6 @@ data_list <- list(
   Premkumar = Premkumar, 
   Wood = Wood, 
   Worthy = Worthy, 
-  Fridberg = Fridberg, 
   Steingroever2011 = Steingroever2011, 
   Wetzels = Wetzels
 )
