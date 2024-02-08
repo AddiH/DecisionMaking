@@ -1,0 +1,43 @@
+Here, check whether all subjects within an experiment has the same number of trials, 
+and whether they contain any N/A.
+
+```{r}
+pacman::p_load(tidyverse)
+load('data/all_studies.rdata')
+```
+
+```{r}
+# put dfs in a list, along with their names
+data <- list(
+  Horstmann = Horstmann, 
+  Kjome = Kjome, 
+  Maia = Maia, 
+  SteingroverInPrep = SteingroverInPrep, 
+  Premkumar = Premkumar, 
+  Wood = Wood, 
+  Worthy = Worthy, 
+  Fridberg = Fridberg, 
+  Steingroever2011 = Steingroever2011, 
+  Wetzels = Wetzels
+)
+```
+
+```{r}
+for (study_name in names(data)) {
+  
+  # Check for NAs
+  if (any(is.na(data[[study_name]]))) {
+  print(paste('There are NA values in ', study_name))
+  } else {
+  print(paste('All good in ', study_name))}
+  
+  # Check for uneven number of trials
+  rows_per_subject <- data[[study_name]] %>%
+    group_by(Subj) %>%
+    summarise(Count = n())
+  
+  if (n_distinct(rows_per_subject$Count) != 1) {
+  print(paste('Issue with number of trials in ', study_name))}}
+```
+
+I do not think it is necessary to check for other errors, return here if code doesn't run

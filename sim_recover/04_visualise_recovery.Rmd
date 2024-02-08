@@ -1,0 +1,78 @@
+```{r}
+#install.packages("pacman")
+pacman::p_load(tidyverse, R2jags, extraDistr, parallel)
+set.seed(69)
+
+MPD <- function(x) {
+  density(x)$x[which(density(x)$y==max(density(x)$y))]
+}
+PVL_sims <- read.csv("../data/simulate.csv")
+n_trials <- 100
+```
+
+```{bash}
+sudo apt-get install jags
+```
+
+
+```{r}
+load("temp_samples.rdata")
+```
+
+```{r}
+recov_w <- temp_samples$BUGSoutput$sims.list$w
+recov_A <- temp_samples$BUGSoutput$sims.list$A
+recov_a <- temp_samples$BUGSoutput$sims.list$a
+recov_theta <- temp_samples$BUGSoutput$sims.list$theta
+
+# find maximum a posteriori
+Q_w <- temp_samples$BUGSoutput$sims.list$w
+max_Q_w <- MPD(Q_w)
+
+Q_A <- temp_samples$BUGSoutput$sims.list$A
+max_Q_A <- MPD(Q_A)
+
+Q_a <- temp_samples$BUGSoutput$sims.list$a
+max_Q_a <- MPD(Q_a)
+
+Q_theta <- temp_samples$BUGSoutput$sims.list$theta
+max_Q_theta <- MPD(Q_theta)
+```
+
+```{r}
+recov_w_df <- as_tibble(recov_w)
+```
+
+```{r}
+max_Q_w
+
+```
+
+```{r}
+ggplot(recov_w) + 
+  geom_density() +
+  geom_vline(xintercept = max_Q_w)
+```
+
+```{r}
+ggplot(recov_w_df, aes(x=V1)) + 
+  geom_density() +
+  geom_vline(xintercept = max_Q_w) 
+```
+
+
+```{r}
+par(mfrow=c(4,1))
+plot(density(recov_w))
+plot(density(recov_A))
+plot(density(recov_a))
+plot(density(recov_theta))
+title(paste("Density plots (for recovered w, A, a & theta) with ntrials =", n_trials), line = -1, outer = TRUE)
+```
+
+```{r}
+print(max_Q_w)
+print(max_Q_A)
+print(max_Q_a)
+print(max_Q_theta)
+```

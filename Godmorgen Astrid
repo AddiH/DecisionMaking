@@ -1,5 +1,3 @@
 Godmorgen Astrid,
-I går var en god dag. Alt koden kører fint og i dag skal du prøve at recover data fra Steingrover. 
-Kig på Recover.Rmd, og sørg for at x, X og Ntrials er tilgengælige - der skal manipuleres med data for at få det hele til at gå op.
-Sørg for at data kan blive smidt rundt, så de enkelte studies kan isoleres - på den måde kan opgaven også komme i mål - hurra!
-Hvis det er til at have med at gøre, så begynd at kig på flere plots og metrics der beskriver hvor god recovery er.
+I går var en god dag. Koden er sorteret og pred_check filen kører. I dag er det med at få styr på hypotesen/metoden for opgaven. Som minimum få sendt en e-mail afsted!
+Først er det noget med at sætte sig bedre ind i pred.check, måske gør det det tydeligt hvilken param vi ønsker at sammenligne på tværs af studier. Ville være genialt hvis recovered params er inden for en vis conf interval? Det er et spørgsmål om afgrænsning, der er sikkert 100 forskllige måder at sammenligne på. -det er jo også godt at nævne i sin disk.

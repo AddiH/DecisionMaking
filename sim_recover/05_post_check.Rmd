@@ -1,0 +1,116 @@
+clone of og script
+
+```{r}
+#install.packages("pacman")
+pacman::p_load(tidyverse, R2jags, extraDistr, parallel)
+set.seed(69)
+
+MPD <- function(x) {
+  density(x)$x[which(density(x)$y==max(density(x)$y))]
+}
+load('../data/all_studies.rdata')
+```
+
+```{r}
+#load control data
+ctr_data <- read.table("../data/IGTdata_healthy_control.txt",header=TRUE)
+ctr_data <- as_tibble(ctr_data)
+```
+
+```{r}
+x_raw <- ctr_data$deck
+X_raw <- ctr_data$gain + ctr_data$loss #note the sign!
+
+subIDs <- unique(ctr_data$subjID)
+nsubs <- length(subIDs)
+ntrials_max <- 100
+
+# empty arrays to fill
+ntrials_all <- array(0,c(nsubs))
+x_all <- array(0,c(nsubs,ntrials_max))
+X_all <- array(0,c(nsubs,ntrials_max))
+
+for (s in 1:nsubs) {
+  
+  #record n trials for subject s
+  ntrials_all[s] <- length(x_raw[ctr_data$subjID==subIDs[s]])
+  
+  #pad trials with NA if n trials < maximum (i.e. 100)
+  x_sub <- x_raw[ctr_data$subjID==subIDs[s]] 
+  length(x_sub) <- ntrials_max
+  
+  X_sub <- X_raw[ctr_data$subjID==subIDs[s]] 
+  length(X_sub) <- ntrials_max
+  
+  # assign arrays
+  x_all[s,] <- x_sub
+  X_all[s,] <- X_sub
+  
+}
+```
+
+
+```{r}
+pred_success <- array(nsubs)
+for (s in 1:5) {
+  
+  x <- x_all[s, ] # indexing the subject
+  X <- X_all[s, ]
+  
+  ntrials <- ntrials_all[s]
+  
+  # set up jags and run jags model on one subject
+  data <- list("x","X","ntrials") 
+  params<-c("w","A","theta","a","p")
+  temp_samples <- jags.parallel(data, inits=NULL, params,
+                                model.file ="../utils/jags_PVL.txt",
+                                n.chains=3, n.iter=5000, n.burnin=1000, n.thin=1, n.cluster=3)
+  
+  p_post <- temp_samples$BUGSoutput$sims.list$p
+  
+  x_predict <- array(ntrials)
+  
+  for (t in 1:ntrials) {
+    p_predict <- c(
+      MPD(p_post[,t,1]),
+      MPD(p_post[,t,2]),
+      MPD(p_post[,t,3]),
+      MPD(p_post[,t,4])
+    )
+    
+    x_predict[t] <- which.max(p_predict)
+    
+  }
+  
+  pred_success[s] <- sum(x_predict==x[1:ntrials]) # only comparing with trials for which we have choices
+  print(s)
+  
+}
+```
+
+```{r}
+load("temp.rdata")
+```
+
+
+
+```{r}
+
+pred_success_adjust <- pred_success/ntrials_all
+
+avg_pred <- mean(pred_success_adjust)
+
+# plotting code courtesy of Mia
+pred_df <- data.frame(pred_success_adjust)
+pred_df$sub <- 1:length(pred_success_adjust) # rownames(pred_df) # creating a subject index
+pred_df$avg <- mean(pred_df$pred_success)
+pred_df$std <- sd(pred_df$pred_success)
+pred_df$chance <- .25
+ggplot(pred_df, aes(sub, pred_success_adjust)) +
+  geom_point() +
+  geom_line(aes(y=chance), linetype="dashed", color = "black") +
+  geom_ribbon(aes(xmin = -Inf, xmax = Inf, ymin = avg - std, ymax = avg + std), fill = "pink", alpha = 0.6) + 
+  geom_line(aes(y=avg)) +
+  ylim(0, 1)
+```
+
