@@ -1,0 +1,130 @@
+```{r}
+#install.packages("pacman")
+pacman::p_load(tidyverse, R2jags)
+```
+
+
+```{r}
+# List of dataset names
+dataset_names <- c("Horstmann", "Kjome", "Maia", "SteingroverInPrep", "Premkumar", 
+                   "Wood", "Worthy", "Fridberg", "Steingroever2011", "Wetzels", "Pooled 150 trials", "Pooled 100 trials")
+
+# Initialize an empty list to store the data
+data_list <- list()
+
+# Loop through dataset names, load each dataset, and assign it to the list
+for (name in dataset_names) {
+  load(paste0('../estimations/', name, '.rdata'))
+  data_list[[name]] <- samples
+  rm(samples) # Remove 'samples' to clean up the environment for the next iteration
+}
+
+study_info <- data.frame(
+  Study = names(data_list), 
+  NumSubjects = c(162, 19, 40, 70, 25, 153, 35, 15, 57, 41, 98, 504),
+  NumTrials = c(100, 100, 100, 100, 100, 100, 100, 95, 150, 150, 150, 100)
+)
+
+study_info <- study_info %>% arrange(desc(NumSubjects)) 
+
+
+```
+
+```{r}
+# Plotting
+  NumSubj_plot <- function(plot_data, parameter_name, palette){ggplot(plot_data, aes(x = Parameter, y = Study, fill = NumSubjects)) +
+    geom_boxplot() +
+    labs(title = paste("Filtered (95%) Posterior Distributions of", parameter_name, "\nacross Studies with", filter, "Trials"),
+         x = paste(parameter_name, "values")) +
+    theme_bw() +
+    theme(legend.position = "right") +
+    scale_fill_brewer(palette=palette, name = "Number of Participants")}
+```
+
+
+```{r}
+# Plotting
+NumTrial_plot <- function(plot_data, parameter_name, palette){ggplot(plot_data, aes(x = Parameter, y = Study, color = NumTrials)) +
+    geom_boxplot() +
+    labs(title = paste("Filtered (95%) Posterior Distributions of", parameter_name, "\nacross Studies with 100 or 150 Trials"),
+         x = paste(parameter_name, "values")) +
+    theme_bw() +
+    theme(legend.position = "right") +
+    scale_fill_brewer(palette=palette, name = "Number of Participants")}
+```
+
+
+```{r}
+filter_parameter_plot <- function(parameter_name, filter, palette) {
+  plot_data <- lapply(study_info$Study, function(study_name) {
+    
+    parameter_samples <- data_list[[study_name]]$BUGSoutput$sims.list[[parameter_name]]
+    
+    num_trials <- study_info$NumTrials[study_info$Study == study_name]
+    
+    data.frame(Parameter = parameter_samples, Study = study_name, 
+               NumSubjects = study_info$NumSubjects[study_info$Study == study_name],
+               NumTrials = num_trials) }
+    ) %>% bind_rows() %>%
+    #filter(Study %in% c("Pooled 100 trials", "Pooled 150 trials")) %>% 
+    mutate(Study = factor(Study, levels = study_info$Study))%>%
+    filter(NumTrials == filter) %>% 
+    #filter(NumTrials != 95) %>%
+    arrange(desc(NumSubjects))
+  
+  plot_data$NumTrials <- factor(plot_data$NumTrials)
+  plot_data$NumSubjects <- factor(plot_data$NumSubjects)
+  
+  
+  
+  # Calculate 95% CI for each study and filter based on it
+  plot_data <- plot_data %>%
+    group_by(Study) %>%
+    mutate(
+      Lower = quantile(Parameter, probs = 0.025, na.rm = TRUE),
+      Upper = quantile(Parameter, probs = 0.975, na.rm = TRUE)
+    ) %>%
+    ungroup() %>%
+    filter(Parameter >= Lower & Parameter <= Upper)
+
+  # Plotting
+  parameter_plot <- NumSubj_plot(plot_data, parameter_name, palette)
+  #parameter_plot <- NumTrial_plot(plot_data, parameter_name, palette)
+
+  # pool <- paste("Pooled", filter ,"trials")
+  #   pool_df <- plot_data %>% 
+  #     filter(Study == pool) 
+  #   pooled_data_max <- max(pool_df$Parameter)
+  #   
+  # plot_data %>% 
+  #   group_by(Study) %>%
+  #   summarise(MinParameter = min(Parameter)) %>%
+  #   ungroup() %>%
+  #   filter(Study != pool & MinParameter > pooled_data_max) %>%
+  #   pull(Study) %>%
+  #   walk(~print(paste(.x, parameter_name, "has no overlap  with", pool)))
+  
+  return(parameter_plot)
+}
+```
+
+
+```{r}
+params <- c("mu_w", "mu_a", "mu_A", "mu_theta", "lambda_w", "lambda_a", "lambda_A", "lambda_theta")
+filter_list <- c(100, 150)
+```
+
+```{r}
+for(filter in filter_list){
+for (param in params) {
+  if(substring(param, 1, 1)=="m"){palette <- "RdYlBu" }else{palette <- "PRGn"}
+  plot <- filter_parameter_plot(param, filter, palette)
+  print(plot)
+  save_path <- paste0("../plots/hier_recover/",param,"_", filter, ".png")
+  ggsave(save_path)
+}
+}
+```
+
+
+

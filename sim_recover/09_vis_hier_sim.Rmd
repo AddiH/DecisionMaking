@@ -1,0 +1,62 @@
+```{r}
+pacman::p_load(tidyverse)
+set.seed(69)
+```
+
+```{r}
+load("../data/hier_recover_100trials.csv")
+```
+
+```{r}
+recov_plot <- function(true, infer, plot_lab, plot_col) {
+  
+  # library(ggplot2)
+  
+  df <- data.frame(true, infer)
+  
+  pl <- ggplot(df, aes(x = true,
+                       y = infer,
+                       color = plot_col)) + #Setting aesthetics for plot
+    geom_point() + #Giving points a color each
+    #scale_linetype(name="perfect recovery") +
+    geom_abline(intercept=0, slope=1, linetype=2) +
+    geom_smooth(method = "lm", se = T, formula = "y ~ x") +
+    theme_minimal() + #Setting theme
+    xlab(plot_lab[1]) + #Setting x label
+    ylab(plot_lab[2]) + #Setting y label
+    labs(color = "") + #Setting legend title
+    ggtitle(paste0("'", plot_lab[2], "' compared to '", plot_lab[1], "'"))
+  
+  return(pl)
+  
+}
+```
+
+
+```{r}
+# let's look at some scatter plots
+# plotting code courtesy of Lasse
+source('recov_plot.R')
+recov_plot(true_mu_w, infer_mu_w, c("true mu_w", "infer mu_w"), 'smoothed linear fit')
+recov_plot(true_mu_A, infer_mu_A, c("true mu_A", "infer mu_A"), 'smoothed linear fit')
+recov_plot(true_mu_theta, infer_mu_theta, c("true mu_theta", "infer mu_theta"), 'smoothed linear fit')
+recov_plot(true_mu_a, infer_mu_a, c("true mu_a", "infer mu_a"), 'smoothed linear fit')
+```
+
+
+```{r}
+# sigma (aka. true_lambda) re-coded as precision
+recov_plot(infer_lambda_w, 1/(true_lambda_w^2), c("infer lambda_w","true lambda_w"), 'smoothed linear fit')
+pl2 <- recov_plot(infer_lambda_A, 1/(true_lambda_A^2), c("infer lambda_A","true lambda_A"), 'smoothed linear fit')
+pl3 <- recov_plot(infer_lambda_theta, 1/(true_lambda_theta^2), c("infer lambda_theta", "true lambda_theta"), 'smoothed linear fit')
+pl4 <- recov_plot(infer_lambda_a, 1/(true_lambda_a^2), c("infer lambda_a", "true lambda_a"), 'smoothed linear fit')
+print(pl1, pl2, pl3, pl4)
+
+# lambda (aka. infer_lambda) re-coded as SD
+pl1 <- recov_plot(1/sqrt(infer_lambda_w), true_lambda_w, c("infer lambda_w","true lambda_w"), 'smoothed linear fit')
+pl2 <- recov_plot(1/sqrt(infer_lambda_A), true_lambda_A, c("infer lambda_A","true lambda_A"), 'smoothed linear fit')
+pl3 <- recov_plot(1/sqrt(infer_lambda_theta), true_lambda_theta, c("infer lambda_theta", "true lambda_theta"), 'smoothed linear fit')
+pl4 <- recov_plot(1/sqrt(infer_lambda_a), true_lambda_a, c("infer lambda_a", "true lambda_a"), 'smoothed linear fit')
+print(pl1, pl2, pl3, pl4)
+```
+

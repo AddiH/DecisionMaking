@@ -1,3 +1,7 @@
+install.packages("pacman")
+pacman::p_load(tidyverse, R2jags, extraDistr, parallel)
+set.seed(69)
+
 load('data/all_studies.rdata')
 
 data_list <- list(

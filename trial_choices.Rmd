@@ -1,0 +1,358 @@
+```{r}
+#install.packages("pacman")
+pacman::p_load(tidyverse)
+load('data/all_studies.rdata')
+```
+
+```{r}
+data_list <- list(
+  Horstmann = Horstmann, 
+  Kjome = Kjome, 
+  Maia = Maia, 
+  SteingroverInPrep = SteingroverInPrep, 
+  Premkumar = Premkumar, 
+  Wood = Wood, 
+  Worthy = Worthy, 
+  Fridberg = Fridberg, 
+  Steingroever2011 = Steingroever2011, 
+  Wetzels = Wetzels
+)
+```
+
+# Functions
+
+```{r}
+trial_choices <- function(df){
+
+  subIDs <- unique(df$Subj)
+  n_subs <- length(subIDs)
+  n_trials <- length(df$Subj)/n_subs
+  
+  plot_df <- df %>% 
+    mutate(trial_nr = rep(seq(0:(n_trials-1)),n_subs)) %>% # add column with trial number
+    #mutate(L = ifelse(X < 0, "yes", "no")) %>% # note whether it is a loss or win
+    mutate(x = case_when( # name decks appropriately
+      x == 1 ~ "A",
+      x == 2 ~ "B",
+      x == 3 ~ "C",
+      x == 4 ~ "D"))
+  
+plot <- plot_df %>% 
+  ggplot(aes(x = trial_nr, y = x, color = x, group = 1)) +
+  geom_line(color = "black") +
+  geom_point() +
+  theme_classic() +
+  labs(title = paste('Deck choice of each participant in', names(data_list)[i]), 
+       x = "Trial", 
+       y = "Deck") + 
+  scale_color_manual(values = c("A" = "coral", "B" = "coral", "C" = "deepskyblue", "D" = "deepskyblue"),
+                     labels = c("A" = "Bad Decks", "C" = "Good Decks"),
+                     breaks = c("A", "C")) +
+  theme(legend.position = "top") +
+  facet_wrap(~Subj, ncol = 1) +
+  theme(strip.text = element_blank())+
+  guides(color = guide_legend(title = NULL))
+
+}
+```
+
+```{r}
+calculate_proportions <- function(df, n_subs, block_size) {
+  df %>%
+    group_by(block, x) %>%
+    summarise(
+      count = n(),
+      proportion = round((count / (block_size * n_subs))*100,0),
+      .groups = 'drop' # This drops the grouping structure afterwards
+    )
+}
+```
+
+```{r}
+calculate_combined_proportions <- function(df, n_subs, block_size) {
+  df %>%
+    mutate(deck_group = case_when(
+      x %in% c("A", "B") ~ "A+B",
+      x %in% c("C", "D") ~ "C+D"
+    )) %>%
+    group_by(block, deck_group) %>%
+    summarise(
+      count = n(),
+      proportion = round((count / (block_size * n_subs)) * 100, 0),
+      .groups = 'drop' 
+    )
+}
+```
+
+```{r}
+block_proportions <- function(df){
+subIDs <- unique(df$Subj)
+n_subs <- length(subIDs)
+n_trials <- length(df$Subj)/n_subs
+if (n_trials == 95) {block_size <- 5} else {block_size <- 10}
+total_blocks <- n_trials/block_size
+
+block_numbers <- (rep(rep(1:total_blocks, each = block_size), times = n_subs))*block_size
+
+df <- df %>% 
+  mutate(trial_nr = rep(seq(0:(n_trials-1)),n_subs)) %>% # add column with trial number
+  mutate(x = case_when( # name decks appropriately
+    x == 1 ~ "A",
+    x == 2 ~ "B",
+    x == 3 ~ "C",
+    x == 4 ~ "D")) %>% 
+  mutate(block = block_numbers)
+
+blocks <- calculate_proportions(df, n_subs, block_size)
+
+plot <- ggplot(blocks, aes(x = block, y = proportion, group = x, color = x, shape = x)) +
+  geom_line() +
+  geom_point() + 
+  labs(title = paste(names(data_list)[i], "\nMean Proportion of Choices by Deck each", block_size, "Trials"),
+       x = "Trial",
+       y = "Mean Proportion of Choices") +
+  theme_bw() +
+  scale_color_manual(values = c("A" = "coral4", "B" = "coral", "C" = "deepskyblue", "D" = "deepskyblue4")) +
+  guides(color = guide_legend(title = "Deck Goup"))
+
+return(plot)
+}
+```
+
+```{r}
+block_proportions_combined <- function(df) {
+subIDs <- unique(df$Subj)
+n_subs <- length(subIDs)
+n_trials <- length(df$Subj)/n_subs
+if (n_trials == 95) {block_size <- 5} else {block_size <- 10}
+total_blocks <- n_trials/block_size
+
+block_numbers <- (rep(rep(1:total_blocks, each = block_size), times = n_subs))*block_size
+
+df <- df %>% 
+  mutate(trial_nr = rep(seq(0:(n_trials-1)),n_subs)) %>% # add column with trial number
+  mutate(x = case_when( # name decks appropriately
+    x == 1 ~ "A",
+    x == 2 ~ "B",
+    x == 3 ~ "C",
+    x == 4 ~ "D")) %>% 
+  mutate(block = block_numbers)
+
+blocks <- calculate_combined_proportions(df, n_subs, block_size)
+  
+  # Plotting code adjusted for combined proportions (A+B vs. C+D)
+  plot <- ggplot(blocks, aes(x = block, y = proportion, group = deck_group, color = deck_group)) +
+    geom_line() +
+    geom_point() +
+    labs(title = paste(names(data_list)[i], "\nMean Proportion of Choices by Deck Group each", block_size, "Trials"),
+         x = "Trial",
+         y = "Mean Proportion of Choices") +
+    theme_bw() +
+    scale_color_manual(values = c("A+B" = "coral", "C+D" = "deepskyblue"))+
+  guides(color = guide_legend(title = "Deck Goup"))
+  
+  return(plot)
+}
+
+```
+
+
+# Plotting individual studies
+
+## Individual trial choices
+
+```{r}
+for (i in 1:length(data_list)){
+df <- data_list[[i]]
+plot <- trial_choices(df)
+print(plot)
+
+# save plot
+subIDs <- unique(df$Subj)
+n_subs <- length(subIDs)
+save_path <- paste0('plots/individual_trial_choices/', names(data_list)[i], '.png')
+#ggsave(save_path, plot, width = 20, height = (n_subs*2), units = 'cm', dpi = 300, limitsize = FALSE)
+}
+```
+
+```{r}
+df <- Horstmann %>% 
+  filter(Subj == 6|Subj == 15|Subj == 25|Subj == 26)
+plot <- trial_choices(df)
+print(plot)
+```
+
+
+## Block proportions
+
+```{r}
+for (i in 1:length(data_list)){
+df <- data_list[[i]]
+plot <- block_proportions(df)
+print(plot)
+
+# save plot
+save_path <- paste0('plots/group_trial_choices/', names(data_list)[i], '.png')
+#ggsave(save_path, plot)
+}
+```
+
+## Combined block proportions
+
+```{r}
+for (i in 1:length(data_list)){
+df <- data_list[[i]]
+plot <- block_proportions_combined(df)
+print(plot)
+
+# save plot
+save_path <- paste0('plots/agg_group_trial_choices/', names(data_list)[i], '.png')
+ggsave(save_path, plot)
+}
+```
+
+# Plotting all studies together
+# Creating combined df
+```{r}
+combined_df_100 <- tibble()
+for (i in 1:length(data_list)){
+df <- data_list[[i]]
+block_size <- 10
+subIDs <- unique(df$Subj)
+n_subs <- length(subIDs)
+n_trials <- length(df$Subj)/n_subs
+if (n_trials == 95| n_trials == 150) {next}
+
+total_blocks <- n_trials/block_size
+
+block_numbers <- (rep(rep(1:total_blocks, each = block_size), times = n_subs))*block_size
+
+df <- df %>% 
+  mutate(trial_nr = rep(seq(0:(n_trials-1)),n_subs)) %>% # add column with trial number
+  mutate(x = case_when( # name decks appropriately
+    x == 1 ~ "A",
+    x == 2 ~ "B",
+    x == 3 ~ "C",
+    x == 4 ~ "D")) %>% 
+  mutate(block = block_numbers) %>% 
+  mutate(Subj = paste(Subj, names(data_list)[i], sep = "_"))
+
+combined_df_100 <- rbind(combined_df_100, df)
+}
+```
+
+
+```{r}
+combined_df_150 <- tibble()
+for (i in 1:length(data_list)){
+df <- data_list[[i]]
+block_size <- 10
+subIDs <- unique(df$Subj)
+n_subs <- length(subIDs)
+n_trials <- length(df$Subj)/n_subs
+if (n_trials == 95 | n_trials == 100) {next}
+
+total_blocks <- n_trials/block_size
+
+block_numbers <- (rep(rep(1:total_blocks, each = block_size), times = n_subs))*block_size
+
+df <- df %>% 
+  mutate(trial_nr = rep(seq(0:(n_trials-1)),n_subs)) %>% # add column with trial number
+  mutate(x = case_when( # name decks appropriately
+    x == 1 ~ "A",
+    x == 2 ~ "B",
+    x == 3 ~ "C",
+    x == 4 ~ "D")) %>% 
+  mutate(block = block_numbers) %>% 
+  mutate(Subj = paste(Subj, names(data_list)[i], sep = "_"))
+
+combined_df_150 <- rbind(combined_df_150, df)
+}
+```
+
+## Block proportions
+
+```{r}
+subIDs <- unique(combined_df_100$Subj)
+n_subs <- length(subIDs) 
+blocks <- calculate_proportions(combined_df_100, n_subs, 10)
+
+plot <- ggplot(blocks, aes(x = block, y = proportion, group = x, color = x, shape = x)) +
+  geom_line() +
+  geom_point() + 
+  labs(title =  "Pool 100 Trials\nMean Proportion of Choices by Deck each 10 Trials",
+       x = "Trial",
+       y = "Mean Proportion of Choices") +
+  theme_bw() +
+  scale_color_manual(values = c("A" = "coral4", "B" = "coral", "C" = "deepskyblue", "D" = "deepskyblue4")) + 
+  labs(color='Deck', shape='Deck')
+
+plot
+
+# save plot
+save_path <- paste0('plots/group_trial_choices/pool_100.png')
+ggsave(save_path, plot)
+```
+
+```{r}
+subIDs <- unique(combined_df_150$Subj)
+n_subs <- length(subIDs) 
+blocks <- calculate_proportions(combined_df_150, n_subs, 10)
+
+plot <- ggplot(blocks, aes(x = block, y = proportion, group = x, color = x, shape = x)) +
+  geom_line() +
+  geom_point() + 
+  labs(title =  "Pool 150 Trials\nMean Proportion of Choices by Deck each 10 Trials",
+       x = "Trial",
+       y = "Mean Proportion of Choices") +
+  theme_bw() +
+  scale_color_manual(values = c("A" = "coral4", "B" = "coral", "C" = "deepskyblue", "D" = "deepskyblue4")) + 
+  labs(color='Deck', shape='Deck')
+
+plot
+
+# save plot
+save_path <- paste0('plots/group_trial_choices/pool_150.png')
+ggsave(save_path, plot)
+```
+## Aggregated decks block proportions
+```{r}
+subIDs <- unique(combined_df_100$Subj)
+n_subs <- length(subIDs) 
+blocks <- calculate_combined_proportions(combined_df_100, n_subs, 10)
+  
+  # Plotting code adjusted for combined proportions (A+B vs. C+D)
+  plot <- ggplot(blocks, aes(x = block, y = proportion, group = deck_group, color = deck_group)) +
+    geom_line() +
+    geom_point() +
+    labs(title = "Pool 100 Trials\nProportion of Choices by Deck Group each Trial",
+         x = "Trial",
+         y = "Mean Proportion of Choices") +
+    theme_bw() +
+    scale_color_manual(values = c("A+B" = "coral", "C+D" = "deepskyblue"))+
+  guides(color = guide_legend(title = "Deck Goup"))
+  
+# save plot
+save_path <- paste0('plots/group_trial_choices/no_blocks/pool_150.png')
+ggsave(save_path, plot)
+```
+
+```{r}
+subIDs <- unique(combined_df_150$Subj)
+n_subs <- length(subIDs) 
+blocks <- calculate_combined_proportions(combined_df_150, n_subs, 10)
+  
+  # Plotting code adjusted for combined proportions (A+B vs. C+D)
+  plot <- ggplot(blocks, aes(x = block, y = proportion, group = deck_group, color = deck_group)) +
+    geom_line() +
+    geom_point() +
+    labs(title = "Pool 150 Trials\nMean Proportion of Choices by Deck Group each 10 Trials",
+         x = "Trial",
+         y = "Mean Proportion of Choices") +
+    theme_bw() +
+    scale_color_manual(values = c("A+B" = "coral", "C+D" = "deepskyblue"))+
+  guides(color = guide_legend(title = "Deck Goup"))
+  
+plot
+```
+

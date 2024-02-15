@@ -1,7 +1,8 @@
+setwd("/work/E/DecisionMaking")
 source("utils/payoff.R")
 
-n_trials <- 100
-div <- 10
+n_trials <- 100 # number of trials
+div <- 10 # subdivisions for pseudo randomisation
 
 # Bad deck
 # Large reward, frequent small loss
@@ -45,4 +46,4 @@ D <- create_deck(
 
 payoff <- cbind(A, B, C, D) # combine
 
-write.csv(payoff, "data/payoff.csv", row.names=FALSE)
+write.csv(payoff, "data/payoff_100_trials.csv", row.names=FALSE)

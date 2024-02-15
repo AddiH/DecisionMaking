@@ -29,12 +29,15 @@ for (study_name in names(data)) {
   if (any(is.na(data[[study_name]]))) {
   print(paste('There are NA values in ', study_name))
   } else {
-  print(paste('All good in ', study_name))}
+  #print(paste('All good in ', study_name))
+    }
   
   # Check for uneven number of trials
   rows_per_subject <- data[[study_name]] %>%
     group_by(Subj) %>%
     summarise(Count = n())
+  #print(length(rows_per_subject$Subj))
+  print(rows_per_subject$Count[1])
   
   if (n_distinct(rows_per_subject$Count) != 1) {
   print(paste('Issue with number of trials in ', study_name))}}

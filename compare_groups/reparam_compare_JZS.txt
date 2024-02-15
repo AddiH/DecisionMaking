@@ -1,0 +1,166 @@
+model {
+  
+  # Implementation of JZS priors for each decision model parameter
+
+  #------ alpha priors ------------------------------------------
+  a.gamma_alpha <- 1/2
+  b.gamma_alpha <- ngroups/2
+
+  phi_alpha ~ dgamma(0.01,0.01)
+
+  invg_alpha ~ dgamma(a.gamma_alpha,b.gamma_alpha)
+  g_alpha <- 1/invg_alpha
+  
+  vari_alpha <- (g_alpha/phi_alpha) * invSigma
+  prec_alpha <- 1/vari_alpha
+  
+  beta0_alpha ~ dnorm(0,1) 
+  betaX_alpha ~ dnorm(0,prec_alpha)
+
+  #------ rho priors ------------------------------------------
+  a.gamma_rho <- 1/2
+  b.gamma_rho <- ngroups/2
+  
+  phi_rho ~ dgamma(0.01,0.01)
+
+  invg_rho ~ dgamma(a.gamma_rho,b.gamma_rho)
+  g_rho <- 1/invg_rho
+  
+  vari_rho <- (g_rho/phi_rho) * invSigma
+  prec_rho <- 1/vari_rho
+  
+  beta0_rho ~ dnorm(0,1)
+  betaX_rho ~ dnorm(0,prec_rho)
+  
+  #------ omega priors ------------------------------------------
+  a.gamma_omega <- 1/2
+  b.gamma_omega <- ngroups/2
+  
+  phi_omega ~ dgamma(0.01,0.01)
+
+  invg_omega ~ dgamma(a.gamma_omega,b.gamma_omega)
+  g_omega <- 1/invg_omega
+  
+  vari_omega <- (g_omega/phi_omega) * invSigma
+  prec_omega <- 1/vari_omega
+  
+  beta0_omega ~ dnorm(0,1)
+  betaX_omega ~ dnorm(0,prec_omega)
+
+  #------ group level regressions ----------------------------
+  for (n in 1:ngroups) {
+  
+    mu_alpha_log[n] <- beta0_alpha + 
+      betaX_alpha*X[n] 
+
+    mu_rho_probit[n] <- beta0_rho + 
+      betaX_rho*X[n]
+
+    mu_omega_probit[n] <- beta0_omega + 
+      betaX_omega*X[n]
+  
+    # subject-level parameters
+    #----------alpha----------
+    
+    tau_alpha[n] ~ dgamma(0.01,0.01)
+    sigma_alpha[n] <- 1/sqrt(tau_alpha[n]) 
+    
+    # reparameterising gamma prior for beliefs about others on first trial 
+    log(mu_alpha[n]) <- mu_alpha_log[n] # standardisation of initial belief mode - log link
+    
+    rate_alpha[n] <- ( mu_alpha[n] + sqrt( mu_alpha[n]^2 + 4*sigma_alpha[n]^2 ) )/
+      (2*sigma_alpha[n]^2) 
+    shape_alpha[n] <- 1 + mu_alpha[n] * rate_alpha[n]
+  
+    #----------rho----------
+    
+    sigma_rho[n] ~ dunif(1,100)
+    
+    probit(mu_rho[n]) <- mu_rho_probit[n] # standardisation of rate estimate mean - probit link
+    
+    shape1_rho[n] <- (mu_rho[n]) * sigma_rho[n]
+    shape2_rho[n] <- (1 - mu_rho[n]) * sigma_rho[n]
+    
+    #----------omega----------
+    
+    sigma_omega[n] ~ dunif(1,100)
+    
+    probit(mu_omega[n]) <- mu_omega_probit[n] # standardisation of rate estimate mean - probit link
+    
+    shape1_omega[n] <- (mu_omega[n]) * sigma_omega[n]
+    shape2_omega[n] <- (1 - mu_omega[n]) * sigma_omega[n]
+  
+  }
+  
+  #--------------------group 1 model--------------------
+  for (g in 1:ngroups_gr1) {
+  
+    for (s in 1:groupSize) {
+    
+      # subject-level parameters
+      #----------alpha----------
+      alpha_gr1[s,g] ~ dgamma(shape_alpha[1], rate_alpha[1])
+      
+      #----------rho----------
+      rho_gr1[s,g] ~ dbeta(shape1_rho[1], shape2_rho[1])
+  
+      #----------omega----------
+      omega_gr1[s,g] ~ dbeta(shape1_omega[1], shape2_omega[1])
+
+      # Gb for first trial
+      Gb_gr1[s,1,g] ~ dpois(alpha_gr1[s,g])
+      
+      # preference and contribution for first trial
+      p_gr1[s,1,g] <- (rho_gr1[s,g]*Gb_gr1[s,1,g])
+      c_gr1[s,1,g,1] ~ dpois(p_gr1[s,1,g])
+    }
+          
+    # modelling remaining trials
+    for (t in 2:ntrials) {
+      
+      for (s in 1:groupSize) {
+      
+        Gb_gr1[s,t,g] <- ((1-omega_gr1[s,g])*(Gb_gr1[s,t-1,g]))+(omega_gr1[s,g]*(Ga_gr1[s,t-1,g,1]))
+        p_gr1[s,t,g] <- (rho_gr1[s,g]*Gb_gr1[s,t,g])
+        c_gr1[s,t,g,1] ~ dpois(p_gr1[s,t,g])
+      }
+    }
+  }
+  #--------------------group 2 model--------------------
+  
+  for (g in 1:ngroups_gr2) {
+  
+    for (s in 1:groupSize) {
+    
+      # subject-level parameters
+      #----------alpha----------
+      alpha_gr2[s,g] ~ dgamma(shape_alpha[2], rate_alpha[2])
+      
+      #----------rho----------
+      rho_gr2[s,g] ~ dbeta(shape1_rho[2], shape2_rho[2])
+  
+      #----------omega----------
+      omega_gr2[s,g] ~ dbeta(shape1_omega[2], shape2_omega[2])
+      
+      # Gb for first trial
+      Gb_gr2[s,1,g] ~ dpois(alpha_gr2[s,g])
+      
+      # preference and contribution for first trial
+      p_gr2[s,1,g] <- (rho_gr2[s,g]*Gb_gr2[s,1,g])
+      c_gr2[s,1,g,1] ~ dpois(p_gr2[s,1,g])
+    
+    }
+    
+    # modelling remaining trials
+    for (t in 2:ntrials) {
+    
+      for (s in 1:groupSize) {
+      
+        Gb_gr2[s,t,g] <- ((1-omega_gr2[s,g])*(Gb_gr2[s,t-1,g]))+(omega_gr2[s,g]*(Ga_gr2[s,t-1,g,1]))
+        p_gr2[s,t,g] <- (rho_gr2[s,g]*Gb_gr2[s,t,g])
+        c_gr2[s,t,g,1] ~ dpois(p_gr2[s,t,g])
+      }
+    }
+  
+  }
+}
